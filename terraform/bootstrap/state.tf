@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "tf_state" {
-  bucket = "fsl-terraform-state-bucket"
+  bucket = "fsl-terraform-state-bucket-demo"
   acl = "private"
   versioning {
     enabled = true
