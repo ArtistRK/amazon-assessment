@@ -10,6 +10,10 @@ resource "aws_s3_bucket" "tf_state" {
   }
 }
 
+provider "aws" {
+  region = "us-east-1"
+}
+
 resource "aws_dynamodb_table" "tf_lock" {
   name           = "terraform-locks"
   billing_mode   = "PAY_PER_REQUEST"
