@@ -36,7 +36,16 @@ data "aws_iam_policy_document" "public" {
 
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-logs"
-  acl    = "log-delivery-write"
+
+  tags = var.tags
+}
+
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
