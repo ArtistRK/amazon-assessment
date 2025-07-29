@@ -40,14 +40,6 @@ resource "aws_s3_bucket" "logs" {
   tags          = var.tags
 }
 
-resource "aws_s3_bucket_ownership_controls" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
 data "aws_caller_identity" "current" {}
 
 resource "aws_s3_bucket_policy" "logs_policy" {
@@ -57,7 +49,7 @@ resource "aws_s3_bucket_policy" "logs_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid: "AllowCloudFrontLogging",
+        Sid: "AllowCloudFrontLogs",
         Effect: "Allow",
         Principal: {
           Service: "cloudfront.amazonaws.com"
@@ -66,13 +58,14 @@ resource "aws_s3_bucket_policy" "logs_policy" {
         Resource: "${aws_s3_bucket.logs.arn}/*",
         Condition: {
           StringEquals: {
-            "AWS:SourceAccount": data.aws_caller_identity.current.account_id
+            "AWS:SourceAccount" = data.aws_caller_identity.current.account_id
           }
         }
       }
     ]
   })
 }
+
 
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
