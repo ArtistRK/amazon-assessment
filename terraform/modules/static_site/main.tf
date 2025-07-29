@@ -35,24 +35,52 @@ data "aws_iam_policy_document" "public" {
 }
 
 resource "aws_s3_bucket" "logs" {
-  bucket = "${var.bucket_name}-logs"
-  force_destroy = true
-
-  tags = var.tags
-}
-
-resource "aws_s3_bucket_acl" "logs_acl" {
-  bucket = aws_s3_bucket.logs.id
-  acl    = "log-delivery-write"
+  bucket         = "${var.bucket_name}-logs"
+  force_destroy  = true
+  tags           = var.tags
 }
 
 resource "aws_s3_bucket_ownership_controls" "logs" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
-    object_ownership = "ObjectWriter"
+    object_ownership = "BucketOwnerEnforced"
   }
 }
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls   = true
+  ignore_public_acls  = true
+  block_public_policy = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_policy" "log_bucket_policy" {
+  bucket = aws_s3_bucket.logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid = "AllowCloudFrontServicePrincipal",
+        Effect = "Allow",
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        },
+        Action = "s3:PutObject",
+        Resource = "${aws_s3_bucket.logs.arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceAccount" = "017820696611"
+          }
+        }
+      }
+    ]
+  })
+}
+
 
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
