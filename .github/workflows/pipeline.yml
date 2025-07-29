@@ -1,0 +1,75 @@
+name: FSL CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [devel, stage, prod]
+  push:
+    branches: [devel, stage, prod]
+
+jobs:
+  build-and-deploy:
+    name: CI/CD for ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 15.14.0
+
+      - uses: actions/checkout@v4
+      - name: Use Node.js 15
+        uses: actions/setup-node@v4
+        with:
+          node-version: 15.14.0
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run ESLint
+        run: npm run lint
+    
+
+      - name: Run Prettier
+        run: npm run prettier -- --write .
+
+      - name: Run Tests (Jest)
+        run: CI=true npm run test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform/environments/${{ github.ref_name }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform/environments/${{ github.ref_name }}
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+        working-directory: terraform/environments/${{ github.ref_name }}
+
+      - name: Terraform Apply (only on push)
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
+        working-directory: terraform/environments/${{ github.ref_name }}
