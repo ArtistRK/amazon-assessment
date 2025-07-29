@@ -54,12 +54,7 @@ resource "aws_cloudfront_distribution" "cdn" {
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
-  logging_config {
-  include_cookies = false
-  bucket          = aws_s3_bucket.cf_logs.bucket_domain_name
-  prefix          = "cloudfront-logs/"
-   }
-  }
+}
 
   enabled             = true
   default_root_object = "index.html"
