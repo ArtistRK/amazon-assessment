@@ -36,15 +36,21 @@ data "aws_iam_policy_document" "public" {
 
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-logs"
+  force_destroy = true
 
   tags = var.tags
+}
+
+resource "aws_s3_bucket_acl" "logs_acl" {
+  bucket = aws_s3_bucket.logs.id
+  acl    = "log-delivery-write"
 }
 
 resource "aws_s3_bucket_ownership_controls" "logs" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
-    object_ownership = "BucketOwnerEnforced"
+    object_ownership = "ObjectWriter"
   }
 }
 
