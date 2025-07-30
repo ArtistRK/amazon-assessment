@@ -39,11 +39,6 @@ resource "aws_s3_bucket" "logs" {
   acl    = "log-delivery-write"
 }
 
-resource "aws_s3_bucket" "cf_logs" {
-  bucket = "your-cloudfront-logs-bucket-${random_id.id.hex}"
-  force_destroy = true
-}
-
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = aws_s3_bucket.site.website_endpoint
@@ -54,7 +49,7 @@ resource "aws_cloudfront_distribution" "cdn" {
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
-}
+  }
 
   enabled             = true
   default_root_object = "index.html"
