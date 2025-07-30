@@ -5,6 +5,7 @@ provider "aws" {
 module "static_site" {
   source      = "../../modules/static_site"
   bucket_name = "fsl-deploy-develop-bucket"
+  log_bucket_name = "fsl-deploy-log-bucket"
   build_dir   = "../../build"
   tags = {
     Environment = "devel"
