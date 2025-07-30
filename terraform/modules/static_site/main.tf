@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "site" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
   force_destroy = true
 
   website {
@@ -11,27 +11,32 @@ resource "aws_s3_bucket" "site" {
 }
 
 resource "aws_s3_bucket_public_access_block" "block" {
-  bucket = aws_s3_bucket.site.id
+  bucket                  = aws_s3_bucket.site.id
   block_public_acls       = false
   block_public_policy     = false
   ignore_public_acls      = false
   restrict_public_buckets = false
 }
 
-resource "aws_s3_bucket_policy" "public" {
-  bucket = aws_s3_bucket.site.id
-  policy = data.aws_iam_policy_document.public.json
-}
-
 data "aws_iam_policy_document" "public" {
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.site.arn}/*"]
+
     principals {
       type        = "AWS"
       identifiers = ["*"]
     }
+
+    effect = "Allow"
   }
+}
+
+resource "aws_s3_bucket_policy" "public" {
+  bucket = aws_s3_bucket.site.id
+  policy = data.aws_iam_policy_document.public.json
+
+  depends_on = [aws_s3_bucket_public_access_block.block] # ✅ Ensure the block is applied first
 }
 
 resource "aws_s3_bucket" "logs" {
@@ -43,6 +48,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = aws_s3_bucket.site.website_endpoint
     origin_id   = "s3-site-origin"
+
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -89,21 +95,7 @@ resource "aws_cloudfront_distribution" "cdn" {
 resource "aws_s3_object" "site_files" {
   for_each = fileset("${var.build_dir}", "**")
 
-  bucket = aws_s3_bucket.site.id
-  key    = each.value
-  source = "${var.build_dir}/${each.value}"
-  etag   = filemd5("${var.build_dir}/${each.value}")
-  content_type = lookup(var.mime_types, split(".", each.value)[length(split(".", each.value)) - 1], "application/octet-stream")
-}
-
-variable "mime_types" {
-  default = {
-    html = "text/html"
-    css  = "text/css"
-    js   = "application/javascript"
-    json = "application/json"
-    png  = "image/png"
-    jpg  = "image/jpeg"
-    svg  = "image/svg+xml"
-  }
-}
+  bucket       = aws_s3_bucket.site.id
+  key          = each.value
+  source       = "${var.build_dir}/${each.value}"
+  etag         = filemd5("${var.build_dir}/${each.value}")
